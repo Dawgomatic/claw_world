@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.local
 .DS_Store
+server/node_modules/
+agent-sdk/node_modules/

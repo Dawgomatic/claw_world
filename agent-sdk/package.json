@@ -1,0 +1,10 @@
+{
+  "name": "claw-world-agent-sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Lightweight SDK for connecting any AI agent to a claw_world server",
+  "main": "claw-agent.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
