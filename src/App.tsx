@@ -1,4 +1,5 @@
 // SWE100821: Root app — wires mock bridge to stores, renders split layout.
+// Phase 2: also wires block actions, inventory, needs, and position updates.
 
 import { useEffect } from 'react';
 import { SplitLayout } from './ui/SplitLayout.tsx';
@@ -11,22 +12,22 @@ const bridge = new MockAdapter();
 
 export function App() {
   useEffect(() => {
-    bridge.onStateChange((id, lifecycle, zone) => {
-      useAgentStore.getState().updateLifecycle(id, lifecycle, zone);
-    });
-    bridge.onMessage((msg) => {
-      useAgentStore.getState().addMessage(msg);
-    });
-    bridge.onTaskUpdate((task) => {
-      useAgentStore.getState().upsertTask(task);
-    });
-    bridge.onActivity((entry) => {
-      useAgentStore.getState().addActivity(entry);
-    });
+    const s = () => useAgentStore.getState();
+
+    bridge.onStateChange((id, lifecycle, zone) => s().updateLifecycle(id, lifecycle, zone));
+    bridge.onMessage((msg) => s().addMessage(msg));
+    bridge.onTaskUpdate((task) => s().upsertTask(task));
+    bridge.onActivity((entry) => s().addActivity(entry));
+
+    // SWE100821: Phase 2 callbacks
+    bridge.onBlockAction((action) => s().addBlockAction(action));
+    bridge.onInventoryUpdate((id, inv) => s().updateInventory(id, inv));
+    bridge.onNeedsUpdate((id, needs) => s().updateNeeds(id, needs));
+    bridge.onPositionUpdate((id, pos) => s().updatePosition(id, pos));
 
     bridge.connect('mock://localhost').then(async () => {
       const agents = await bridge.listAgents();
-      useAgentStore.getState().setAgents(agents);
+      s().setAgents(agents);
     });
 
     return () => bridge.disconnect();

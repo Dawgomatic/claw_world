@@ -1,6 +1,7 @@
 // SWE100821: Monitor container — tabbed panel switching between views.
 
 import { useUIStore, type MonitorPanel } from '../store/ui-store.ts';
+import { useAgentStore } from '../store/agent-store.ts';
 import { AgentList } from './AgentList.tsx';
 import { ActivityFeed } from './ActivityFeed.tsx';
 import { TaskBoard } from './TaskBoard.tsx';
@@ -16,6 +17,8 @@ export function Monitor() {
   const activePanel = useUIStore((s) => s.activePanel);
   const setPanel = useUIStore((s) => s.setPanel);
   const selectedAgentId = useUIStore((s) => s.selectedAgentId);
+  const worldTime = useAgentStore((s) => s.worldTime);
+  const dayLabel = useAgentStore((s) => s.dayLabel);
 
   const showDetail = activePanel === 'detail' && selectedAgentId;
 
@@ -60,9 +63,10 @@ export function Monitor() {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-3 py-2 border-t border-gray-800 text-[10px] text-gray-600">
-        OpenClaw Bridge • Mock Adapter
+      {/* SWE100821: Footer with world time */}
+      <div className="px-3 py-2 border-t border-gray-800 text-[10px] text-gray-600 flex justify-between">
+        <span>OpenClaw Bridge • Mock Adapter</span>
+        <span className="text-gray-400">{worldTime} • {dayLabel}</span>
       </div>
     </div>
   );

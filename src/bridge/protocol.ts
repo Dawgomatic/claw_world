@@ -25,6 +25,26 @@ export interface AvatarConfig {
   particleTrail: ParticleTrail;
 }
 
+// SWE100821: Agent position in 3D world (voxel coordinates)
+export interface WorldPos {
+  x: number;
+  y: number;
+  z: number;
+}
+
+// SWE100821: Inventory item slot
+export interface ItemStack {
+  blockType: number;
+  count: number;
+}
+
+// SWE100821: Agent needs (drive behavior in simulation)
+export interface AgentNeeds {
+  energy: number;
+  social: number;
+  curiosity: number;
+}
+
 export interface AgentInfo {
   id: string;
   name: string;
@@ -33,6 +53,9 @@ export interface AgentInfo {
   avatar: AvatarConfig;
   taskCount: number;
   uptime: number;
+  worldPos: WorldPos;
+  inventory: ItemStack[];
+  needs: AgentNeeds;
 }
 
 export interface AgentMessage {
@@ -60,8 +83,35 @@ export interface ActivityEntry {
   id: string;
   agentId: string;
   agentName: string;
-  type: 'state_change' | 'message' | 'task' | 'tool_call';
+  type: 'state_change' | 'message' | 'task' | 'tool_call' | 'build' | 'gather' | 'craft' | 'trade';
   text: string;
+  ts: number;
+}
+
+// SWE100821: World interaction events
+export interface BlockAction {
+  agentId: string;
+  action: 'place' | 'remove';
+  x: number;
+  y: number;
+  z: number;
+  blockType: number;
+  ts: number;
+}
+
+export interface CraftAction {
+  agentId: string;
+  recipe: string;
+  inputs: ItemStack[];
+  output: ItemStack;
+  ts: number;
+}
+
+export interface TradeAction {
+  from: string;
+  to: string;
+  give: ItemStack[];
+  receive: ItemStack[];
   ts: number;
 }
 
@@ -83,6 +133,14 @@ export interface OpenClawBridge {
 
   getAvatarConfig(id: string): Promise<AvatarConfig>;
   onAvatarUpdate(cb: (id: string, config: AvatarConfig) => void): void;
+
+  // SWE100821: Phase 2 — world interaction
+  onBlockAction(cb: (action: BlockAction) => void): void;
+  onCraftAction(cb: (action: CraftAction) => void): void;
+  onTradeAction(cb: (action: TradeAction) => void): void;
+  onInventoryUpdate(cb: (agentId: string, inventory: ItemStack[]) => void): void;
+  onNeedsUpdate(cb: (agentId: string, needs: AgentNeeds) => void): void;
+  onPositionUpdate(cb: (agentId: string, pos: WorldPos) => void): void;
 }
 
 /** Deterministic default avatar derived from agent ID hash. */

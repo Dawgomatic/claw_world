@@ -11,6 +11,12 @@ import type {
   ActivityEntry,
   AgentLifecycle,
   ZoneId,
+  BlockAction,
+  CraftAction,
+  TradeAction,
+  ItemStack,
+  AgentNeeds,
+  WorldPos,
 } from './protocol.ts';
 import { defaultAvatarFromId, LIFECYCLE_TO_ZONE } from './protocol.ts';
 
@@ -19,6 +25,12 @@ type MessageCb = (msg: AgentMessage) => void;
 type TaskUpdateCb = (task: TaskUpdate) => void;
 type ActivityCb = (entry: ActivityEntry) => void;
 type AvatarUpdateCb = (id: string, config: AvatarConfig) => void;
+type BlockActionCb = (action: BlockAction) => void;
+type CraftActionCb = (action: CraftAction) => void;
+type TradeActionCb = (action: TradeAction) => void;
+type InventoryUpdateCb = (agentId: string, inventory: ItemStack[]) => void;
+type NeedsUpdateCb = (agentId: string, needs: AgentNeeds) => void;
+type PositionUpdateCb = (agentId: string, pos: WorldPos) => void;
 
 export class XagentAdapter implements OpenClawBridge {
   private endpoint = '';
@@ -30,6 +42,12 @@ export class XagentAdapter implements OpenClawBridge {
   private taskCbs: TaskUpdateCb[] = [];
   private activityCbs: ActivityCb[] = [];
   private avatarCbs: AvatarUpdateCb[] = [];
+  private blockCbs: BlockActionCb[] = [];
+  private craftCbs: CraftActionCb[] = [];
+  private tradeCbs: TradeActionCb[] = [];
+  private invCbs: InventoryUpdateCb[] = [];
+  private needsCbs: NeedsUpdateCb[] = [];
+  private posCbs: PositionUpdateCb[] = [];
 
   async connect(endpoint: string): Promise<void> {
     this.endpoint = endpoint.replace(/\/$/, '');
@@ -55,6 +73,14 @@ export class XagentAdapter implements OpenClawBridge {
   onTaskUpdate(cb: TaskUpdateCb): void { this.taskCbs.push(cb); }
   onActivity(cb: ActivityCb): void { this.activityCbs.push(cb); }
   onAvatarUpdate(cb: AvatarUpdateCb): void { this.avatarCbs.push(cb); }
+
+  // SWE100821: Phase 2 stubs — will be connected to gateway WebSocket relay
+  onBlockAction(cb: BlockActionCb): void { this.blockCbs.push(cb); }
+  onCraftAction(cb: CraftActionCb): void { this.craftCbs.push(cb); }
+  onTradeAction(cb: TradeActionCb): void { this.tradeCbs.push(cb); }
+  onInventoryUpdate(cb: InventoryUpdateCb): void { this.invCbs.push(cb); }
+  onNeedsUpdate(cb: NeedsUpdateCb): void { this.needsCbs.push(cb); }
+  onPositionUpdate(cb: PositionUpdateCb): void { this.posCbs.push(cb); }
 
   async sendTask(agentId: string, task: TaskRequest): Promise<void> {
     await fetch(`${this.endpoint}/a2a/${agentId}/task`, {
@@ -103,6 +129,9 @@ export class XagentAdapter implements OpenClawBridge {
         avatar: prev?.avatar ?? defaultAvatarFromId(id),
         taskCount: prev?.taskCount ?? 0,
         uptime: data.uptime ?? 0,
+        worldPos: prev?.worldPos ?? { x: 0, y: 8, z: 0 },
+        inventory: prev?.inventory ?? [],
+        needs: prev?.needs ?? { energy: 100, social: 80, curiosity: 90 },
       };
 
       if (prev?.lifecycle !== lifecycle) {

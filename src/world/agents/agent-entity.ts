@@ -1,29 +1,32 @@
 // SWE100821: Agent 3D entity — ties avatar mesh, nametag, status to scene lifecycle.
+// Phase 2: agents positioned on voxel terrain using worldPos from protocol.
 
 import { Vector3 } from '@babylonjs/core';
 import { AdvancedDynamicTexture, TextBlock, Rectangle, StackPanel } from '@babylonjs/gui';
 import type { Scene } from '@babylonjs/core';
 import type { AgentInfo } from '../../bridge/protocol.ts';
-import type { AvatarMeshGroup } from '../avatar/avatar-builder.ts';
 import { buildAvatar } from '../avatar/avatar-builder.ts';
 import { applyExpression } from '../avatar/expressions.ts';
-import { randomPointInZone } from '../scene/zones.ts';
 import { stepToward, faceDirection } from './navigation.ts';
 
 export interface AgentEntity {
   agentId: string;
-  avatar: AvatarMeshGroup;
-  targetPos: Vector3;
   lifecycle: AgentInfo['lifecycle'];
   update: (dt: number, time: number) => void;
-  moveTo: (zone: AgentInfo['zone']) => void;
+  setTarget: (x: number, y: number, z: number) => void;
   setLifecycle: (lc: AgentInfo['lifecycle'], zone: AgentInfo['zone']) => void;
   dispose: () => void;
 }
 
 export function createAgentEntity(scene: Scene, info: AgentInfo, guiTexture: AdvancedDynamicTexture): AgentEntity {
   const avatar = buildAvatar(scene, info.avatar, info.id);
-  const startPos = randomPointInZone(info.zone);
+
+  // SWE100821: spawn at worldPos from protocol (on voxel terrain surface)
+  const startPos = new Vector3(
+    info.worldPos?.x ?? 0,
+    (info.worldPos?.y ?? 8) + 0.01,
+    info.worldPos?.z ?? 0,
+  );
   avatar.root.position = startPos;
   let targetPos = startPos.clone();
   let lifecycle = info.lifecycle;
@@ -65,15 +68,14 @@ export function createAgentEntity(scene: Scene, info: AgentInfo, guiTexture: Adv
     applyExpression(avatar.body, avatar.head, avatar.eyeLeft, avatar.eyeRight, lifecycle, time);
   }
 
-  function moveTo(zone: AgentInfo['zone']) {
-    targetPos = randomPointInZone(zone);
+  function setTarget(x: number, y: number, z: number) {
+    targetPos = new Vector3(x, y + 0.01, z);
   }
 
-  function setLifecycle(lc: AgentInfo['lifecycle'], zone: AgentInfo['zone']) {
+  function setLifecycle(lc: AgentInfo['lifecycle'], _zone: AgentInfo['zone']) {
     lifecycle = lc;
     statusText.text = lc;
     statusText.color = lifecycleColor(lc);
-    moveTo(zone);
   }
 
   function dispose() {
@@ -81,7 +83,7 @@ export function createAgentEntity(scene: Scene, info: AgentInfo, guiTexture: Adv
     avatar.dispose();
   }
 
-  return { agentId: info.id, avatar, targetPos, lifecycle, update, moveTo, setLifecycle, dispose };
+  return { agentId: info.id, lifecycle, update, setTarget, setLifecycle, dispose };
 }
 
 function lifecycleColor(lc: AgentInfo['lifecycle']): string {
